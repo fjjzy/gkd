@@ -103,13 +103,13 @@ sealed class UpdateChannelOption(
     data object Stable : UpdateChannelOption(
         0,
         "稳定版",
-        "https://registry.npmmirror.com/@gkd-kit/app/latest/files/index.json"
+        "https://api.github.com/repos/fjjzy/gkd/releases/latest"
     )
 
     data object Beta : UpdateChannelOption(
         1,
         "测试版",
-        "https://registry.npmmirror.com/@gkd-kit/app-beta/latest/files/index.json"
+        "https://api.github.com/repos/fjjzy/gkd/releases/latest"
     )
 
     companion object {
