@@ -206,6 +206,29 @@ fun AboutPage() {
                 Spacer(modifier = Modifier.height(32.dp))
             }
 
+            Text(
+                text = "版本声明",
+                modifier = Modifier.titleItemPadding(),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .itemPadding()
+            ) {
+                Text(
+                    text = "GKD Plus 是基于 GKD 的社区改版，并非 GKD 原版官方发布版本。",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "感谢原作者 lisonge 与 GKD 项目贡献者提供优秀的开源基础。本项目会尽量尊重原项目设计与 GPL-3.0 开源协议。",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             SettingItem(
                 imageVector = null,
                 title = "开源代码",
