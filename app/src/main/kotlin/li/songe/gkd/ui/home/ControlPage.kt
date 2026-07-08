@@ -16,16 +16,21 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,6 +80,7 @@ import li.songe.gkd.util.ShortUrlSet
 import li.songe.gkd.util.latestRecordDescFlow
 import li.songe.gkd.util.latestRecordFlow
 import li.songe.gkd.util.launchAsFn
+import li.songe.gkd.util.openUri
 import li.songe.gkd.util.throttle
 
 @Composable
@@ -251,10 +257,56 @@ fun useControlPage(): ScaffoldExt {
                 onClick = {
                     mainVm.navigatePage(WebViewRoute(initUrl = HOME_PAGE_URL))
                 })
+
+            var showManualUpdateDialog by remember { mutableStateOf(false) }
+            PageItemCard(
+                title = "手动更新 APP",
+                subtitle = "无加速器从此处手动更新最新版",
+                imageVector = PerfIcon.Autorenew,
+                onClickLabel = "打开手动更新下载弹窗",
+                onClick = {
+                    showManualUpdateDialog = true
+                })
+            ManualUpdateDialog(
+                visible = showManualUpdateDialog,
+                onDismissRequest = { showManualUpdateDialog = false },
+            )
             Spacer(modifier = Modifier.height(EmptyHeight))
         }
     }
 }
+
+@Composable
+private fun ManualUpdateDialog(
+    visible: Boolean,
+    onDismissRequest: () -> Unit,
+) {
+    if (!visible) return
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = { Text(text = "手动更新 APP") },
+        text = { Text(text = "无加速器从此处手动更新最新版") },
+        confirmButton = {
+            TextButton(onClick = throttle {
+                onDismissRequest()
+                openUri(QUARK_MANUAL_UPDATE_URL)
+            }) {
+                Text(text = "夸克网盘")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = throttle {
+                onDismissRequest()
+                openUri(BAIDU_MANUAL_UPDATE_URL)
+            }) {
+                Text(text = "百度网盘")
+            }
+        },
+    )
+}
+
+private const val QUARK_MANUAL_UPDATE_URL = "https://pan.quark.cn/s/62672aa3402a"
+private const val BAIDU_MANUAL_UPDATE_URL = "https://pan.baidu.com/s/1msaC8BsFKcZUOYKVpI43dQ?pwd=417a"
 
 
 @Composable
