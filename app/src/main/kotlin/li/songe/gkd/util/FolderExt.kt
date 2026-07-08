@@ -12,6 +12,7 @@ import li.songe.gkd.data.otherUserMapFlow
 import li.songe.gkd.permission.allPermissionStates
 import li.songe.gkd.shizuku.currentUserId
 import li.songe.gkd.shizuku.shizukuContextFlow
+import li.songe.gkd.store.storeFlow
 import java.io.File
 
 fun File.autoMk(): File {
@@ -92,12 +93,53 @@ private data class AppJsonData(
     val othersApps: List<AppInfo> = otherUserAppInfoMapFlow.value.values.toList(),
 )
 
+private const val MASKED_SECRET = "********"
+
+private val jsonApiKeyRegex = Regex("""(?i)("api[-_]?key"\s*:\s*")[^"]*(")""")
+private val plainApiKeyRegex = Regex("""(?i)\b(api[-_ ]?key\s*[=:]\s*)[^\s,}"']+""")
+private val bearerTokenRegex = Regex("""(?i)\b(authorization\s*[:=]\s*bearer\s+)[^\s,}"']+""")
+private val xApiKeyRegex = Regex("""(?i)\b(x-api-key\s*[:=]\s*)[^\s,}"']+""")
+private val redactableLogFileExtensions = setOf("json", "txt", "log")
+
+internal fun redactSensitiveText(text: String): String {
+    return text
+        .replace(jsonApiKeyRegex) { result -> result.groupValues[1] + MASKED_SECRET + result.groupValues[2] }
+        .replace(plainApiKeyRegex) { result -> result.groupValues[1] + MASKED_SECRET }
+        .replace(bearerTokenRegex) { result -> result.groupValues[1] + MASKED_SECRET }
+        .replace(xApiKeyRegex) { result -> result.groupValues[1] + MASKED_SECRET }
+}
+
+private fun File.redactSensitiveLogFiles() {
+    if (isDirectory) {
+        listFiles()?.forEach { it.redactSensitiveLogFiles() }
+        return
+    }
+    if (!isFile || extension.lowercase() !in redactableLogFileExtensions) return
+    val oldText = runCatching { readText() }.getOrNull() ?: return
+    val newText = redactSensitiveText(oldText)
+    if (newText != oldText) {
+        writeText(newText)
+    }
+}
+
+private fun File.copyToLogTemp(tempDir: File): File {
+    val target = tempDir.resolve(name)
+    copyRecursively(target, overwrite = true)
+    target.redactSensitiveLogFiles()
+    return target
+}
+
 @WorkerThread
 fun buildLogFile(): File {
     val tempDir = createGkdTempDir()
     val files = listOf(dbFolder, storeFolder, subsFolder, logFolder, crashFolder).filter {
         it.list()?.isNotEmpty() == true
-    }.toMutableList()
+    }.map { it.copyToLogTemp(tempDir) }.toMutableList()
+    tempDir.resolve(storeFolder.name).resolve(storeFlow.filename).also {
+        if (it.parentFile?.isDirectory == true) {
+            it.writeText(json.encodeToString(storeFlow.value.copy(aiConfig = storeFlow.value.aiConfig.copy(apiKey = MASKED_SECRET))))
+        }
+    }
     tempDir.resolve("apps.json").also {
         it.writeText(json.encodeToString(AppJsonData()))
         files.add(it)
